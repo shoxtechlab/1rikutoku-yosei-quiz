@@ -35,16 +35,12 @@ async function loadEasyQuestions() {
   }
 }
 const chapterOrder = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 18, 12, 13, 14, 15, 17];
-const lawStudyOrder = [
-  "目的・定義", "無線局免許", "無線設備", "無線従事者", "一陸特の範囲",
-  "無線局運用", "非常時の通信", "通信の秘密", "業務書類", "監督", "罰則"
-];
 
 function studyPosition(question) {
   const chapter = Number.parseInt(question.tag, 10);
-  const order = question.subject === "無線工学" ? chapterOrder : lawStudyOrder;
-  const position = order.indexOf(question.subject === "無線工学" ? chapter : question.tag);
-  return position < 0 ? order.length : position;
+  if (question.subject === "法規") return chapter;
+  const position = chapterOrder.indexOf(chapter);
+  return position < 0 ? chapterOrder.length : position;
 }
 function prepareExam(mode) {
   state.mode = mode;
