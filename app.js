@@ -18,7 +18,7 @@ function returnHome(event) {
   show("start-screen");
 }
 function validateBank(list){const e=[],ids=new Set;if(!Array.isArray(list))return["questions が配列ではありません"];list.forEach((q,i)=>{if(!q.id||ids.has(q.id))e.push(`${i+1}番: idが未設定または重複`);ids.add(q.id);if(!["無線工学","法規"].includes(q.subject))e.push(`${q.id}: 科目が不正`);if(!Array.isArray(q.choices)||q.choices.length!==4)e.push(`${q.id}: 選択肢は4個必要`);if(!Number.isInteger(q.answer)||q.answer<0||q.answer>3)e.push(`${q.id}: 正答番号が不正`);["question","explanation","tag","difficulty"].forEach(k=>{if(!q[k])e.push(`${q.id}: ${k}が未設定`)})});[["無線工学",20],["法規",10]].forEach(([s,n])=>{if(list.filter(q=>q.subject===s).length<n)e.push(`${s}は${n}問以上必要`)});return e}
-async function loadQuestions(){try{const r=await fetch("questions.json",{cache:"no-cache"});if(!r.ok)throw Error(`HTTP ${r.status}`);const data=await r.json(),errors=validateBank(data.questions);if(errors.length)throw Error(errors.join(" / "));state.bank=data.questions.filter(q=>q.deleted!==true);$("load-status").textContent=`${state.bank.length}問の問題データを確認しました。`;const lawCount=state.bank.filter(q=>q.subject==="法規").length;$("start-button").disabled=lawCount<10||!canDrawEngineering(state.bank);$("all-engineering").disabled=!state.bank.some(q=>q.subject==="無線工学");$("all-law").disabled=!lawCount;if($("start-button").disabled)$("load-status").textContent+=" ランダム30問に必要な問題が不足しています。"}catch(error){$("load-status").classList.add("error");$("load-status").textContent="問題データを読み込めません。静的Webサーバー経由で開いてください。";console.error(error)}}
+async function loadQuestions(){try{const r=await fetch("questions.json",{cache:"no-cache"});if(!r.ok)throw Error(`HTTP ${r.status}`);const data=await r.json(),errors=validateBank(data.questions);if(errors.length)throw Error(errors.join(" / "));state.bank=data.questions.filter(q=>q.deleted!==true);$("load-status").textContent=`${state.bank.length}問の問題データを確認しました。`;const lawCount=state.bank.filter(q=>q.subject==="法規").length;$("start-button").disabled=!canDrawLaw(state.bank)||!canDrawEngineering(state.bank);$("all-engineering").disabled=!state.bank.some(q=>q.subject==="無線工学");$("all-law").disabled=!lawCount;if($("start-button").disabled)$("load-status").textContent+=" ランダム30問に必要な問題が不足しています。"}catch(error){$("load-status").classList.add("error");$("load-status").textContent="問題データを読み込めません。静的Webサーバー経由で開いてください。";console.error(error)}}
 async function loadEasyQuestions() {
   try {
     const response = await fetch("questions-easy.json", {cache: "no-cache"});
@@ -89,6 +89,27 @@ function drawEngineering(bank) {
   return shuffle(selected);
 }
 
+const lawQuotas = [[[1, 2], 2], [[3], 2], [[4], 1], [[5], 2], [[6, 7, 8], 3]];
+
+function lawPools(bank) {
+  const law = bank.filter(q => q.subject === "法規" && q.deleted !== true);
+  return lawQuotas.map(([chapters, quota]) => ({
+    questions: law.filter(q => chapters.includes(studyPosition(q))),
+    quota
+  }));
+}
+
+function canDrawLaw(bank) {
+  return lawPools(bank).every(({questions, quota}) => questions.length >= quota);
+}
+
+function drawLaw(bank) {
+  return shuffle(lawPools(bank).flatMap(({questions, quota}) => {
+    if (questions.length < quota) throw new Error("法規のランダム出題に必要な問題が不足しています");
+    return shuffle(questions).slice(0, quota);
+  }));
+}
+
 function prepareExam(mode) {
   state.mode = mode;
   state.answers.clear();
@@ -102,7 +123,7 @@ function prepareExam(mode) {
     ? [...state.easyBank].sort(byTopic)
     : mode !== "random"
     ? (mode === "無線工学" ? engineering : law).sort(byTopic)
-    : [...drawEngineering(engineering), ...shuffle(law).slice(0, 10)];
+    : [...drawEngineering(engineering), ...drawLaw(law)];
   state.questions = questions.map(q => {
     const choices = q.choices.map((text, index) => ({text, index}));
     return {...q, displayChoices: mode === "random" || mode === "easy" ? shuffle(choices) : choices};

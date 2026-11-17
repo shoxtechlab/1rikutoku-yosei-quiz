@@ -69,5 +69,20 @@ for (const pool of [bank, easyBank]) {
     }
   }
 }
+const {drawLaw, canDrawLaw} = vm.runInContext("({drawLaw, canDrawLaw})", context);
+const lawGroups = [[1, 2], [3], [4], [5], [6, 7, 8]];
+for (let trial = 0; trial < 100; trial++) {
+  const selected = drawLaw(bank);
+  const counts = lawGroups.map(chapters =>
+    selected.filter(q => chapters.includes(Number.parseInt(q.tag, 10))).length);
+  if (counts.join(",") !== "2,2,1,2,3" || new Set(selected.map(q => q.id)).size !== 10
+      || selected.some(q => q.subject !== "法規" || q.deleted === true)) {
+    errors.push("法規の抽選条件が不正");
+    break;
+  }
+}
+const missingLawChapter = bank.map(q =>
+  q.subject === "法規" && q.tag.startsWith("3章_") ? {...q, deleted: true} : q);
+if (!canDrawLaw(bank) || canDrawLaw(missingLawChapter)) errors.push("法規の章別在庫判定が不正");
 if(errors.length){console.error(errors.join("\n"));process.exit(1)}
 console.log(`OK: 問題バンク${bank.length}問。出題数に必要な在庫、ID・4択・正答範囲・選択肢重複・必須項目・法規根拠・JS構文を確認`);
