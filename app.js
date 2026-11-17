@@ -60,8 +60,32 @@ function prepareExam(mode) {
   });
   $("retry-button").textContent = mode === "easy" ? "やさしい20問に再挑戦" : mode !== "random" ? `${mode}をもう一度解く` : "ランダム30問に再挑戦";
   renderQuiz();
+  renderChapterJump();
   show("quiz-screen");
 }
+
+function renderChapterJump() {
+  const fullPractice = state.mode === "無線工学" || state.mode === "法規";
+  $("chapter-jump").hidden = !fullPractice;
+  const select = $("chapter-select");
+  select.replaceChildren(new Option("章を選ぶ", ""));
+  if (!fullPractice) return;
+
+  const seen = new Set();
+  state.questions.forEach((question, index) => {
+    if (seen.has(question.tag)) return;
+    seen.add(question.tag);
+    const label = question.tag.replace("_", "　");
+    select.add(new Option(`${label}（問${index + 1}）`, String(index)));
+  });
+}
+
+$("chapter-select").addEventListener("change", event => {
+  const select = event.currentTarget;
+  if (select.value === "") return;
+  $("question-" + select.value).scrollIntoView({block: "start"});
+  select.value = "";
+});
 function renderQuiz(){$("questions").innerHTML=state.questions.map((q,i)=>`<article class="question-card" id="question-${i}"><div class="question-meta"><span class="question-number">問${i+1}</span><span class="pill">${escapeHtml(q.courseSubject ?? q.subject)}</span><span class="pill">${q.tag}</span><span class="difficulty">難易度：${q.difficulty}</span></div><fieldset><legend>${escapeHtml(q.question)}</legend>${q.hint ? `<details class="study-hint"><summary>ヒント</summary><p>${escapeHtml(q.hint)}</p></details>` : ""}${q.displayChoices.map((c,j)=>`<label class="choice"><input type="radio" name="q${i}" value="${c.index}"><span class="choice-letter">${"ABCD"[j]}</span><span>${escapeHtml(c.text)}</span></label>`).join("")}</fieldset><button type="button" class="button secondary check-answer" data-index="${i}" disabled>答え合わせ</button><div class="review-answer check-feedback" id="feedback-${i}" role="status" hidden></div></article>`).join("");$("question-nav").innerHTML=state.questions.map((_,i)=>`<button type="button" data-index="${i}" aria-label="問${i+1}へ移動">${i+1}</button>`).join("");$("questions").querySelectorAll("input").forEach(x=>x.addEventListener("change",e=>{const i=Number(e.target.name.slice(1));state.answers.set(i,Number(e.target.value));$("question-"+i).querySelector(".check-answer").disabled=false;updateProgress()}));
   $("questions").querySelectorAll(".check-answer").forEach(button=>button.addEventListener("click",()=>checkAnswer(button)));
   $("question-nav").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>$("question-"+b.dataset.index).scrollIntoView({behavior:"smooth"})));updateProgress()}

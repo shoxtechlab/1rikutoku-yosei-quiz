@@ -4,6 +4,25 @@
   min-inline-size: 0;
 }
 
+.chapter-jump:not([hidden]) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: .85rem;
+}
+
+.chapter-jump label {
+  flex-shrink: 0;
+}
+
+.chapter-jump select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 5px 8px;
+  font: inherit;
+}
+
 .study-hint {
   margin: 0 0 12px;
   padding: 10px 12px;
