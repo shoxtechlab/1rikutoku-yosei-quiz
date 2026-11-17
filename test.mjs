@@ -19,6 +19,14 @@ for(const [subject,count] of [["無線工学",20],["法規",10]]){
 const html=fs.readFileSync("index.html","utf8");
 const easyBank = JSON.parse(fs.readFileSync("questions-easy.json", "utf8")).questions;
 const engineeringIds = new Set(bank.filter(q => q.subject === "無線工学").map(q => q.id));
+for (const question of bank.filter(q => q.subject === "無線工学")) {
+  const chapter = Number.parseInt(question.tag, 10);
+  const expectedSubject = chapter <= 8 ? "無線工学A"
+    : [9, 10, 11, 16, 18].includes(chapter) ? "無線工学B" : "無線工学C";
+  if (!/^(?:[1-9]|1[0-8])章_.+$/.test(question.tag) || question.courseSubject !== expectedSubject) {
+    errors.push(`科目・章タグが不正: ${question.id}`);
+  }
+}
 for (const question of easyBank) {
   if (!engineeringIds.delete(question.originalId) || ids.has(question.id)
       || question.subject !== "無線工学" || !question.question
@@ -28,6 +36,10 @@ for (const question of easyBank) {
     errors.push(`やさしい版のデータ不正: ${question.id}`);
   }
   ids.add(question.id);
+  const original = bank.find(item => item.id === question.originalId);
+  if (original && (original.tag !== question.tag || original.courseSubject !== question.courseSubject)) {
+    errors.push(`通常版と科目・章タグが異なる: ${question.id}`);
+  }
   if (bank.find(original => original.id === question.originalId)?.question === question.question) {
     errors.push(`やさしい版の問題文が通常版と同一: ${question.id}`);
   }
