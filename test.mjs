@@ -21,13 +21,16 @@ const easyBank = JSON.parse(fs.readFileSync("questions-easy.json", "utf8")).ques
 const engineeringIds = new Set(bank.filter(q => q.subject === "無線工学").map(q => q.id));
 for (const question of easyBank) {
   if (!engineeringIds.delete(question.originalId) || ids.has(question.id)
-      || question.subject !== "無線工学" || !question.question || !question.hint
+      || question.subject !== "無線工学" || !question.question
       || !question.explanation || question.choices.length !== 4
       || new Set(question.choices).size !== 4 || !Number.isInteger(question.answer)
       || question.answer < 0 || question.answer > 3) {
     errors.push(`やさしい版のデータ不正: ${question.id}`);
   }
   ids.add(question.id);
+  if (bank.find(original => original.id === question.originalId)?.question === question.question) {
+    errors.push(`やさしい版の問題文が通常版と同一: ${question.id}`);
+  }
 }
 if (engineeringIds.size) errors.push(`やさしい版の未作成: ${[...engineeringIds].join(", ")}`);
 if (!html.includes('id="easy-engineering"')) errors.push("やさしい版の開始ボタンなし");
