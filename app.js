@@ -121,13 +121,15 @@ function renderChapterJump() {
   select.replaceChildren(new Option("章を選ぶ", ""));
   if (!fullPractice) return;
 
-  const seen = new Set();
+  const chapters = new Map();
   state.questions.forEach((question, index) => {
-    if (seen.has(question.tag)) return;
-    seen.add(question.tag);
-    const label = question.tag.replace("_", "　");
-    select.add(new Option(`${label}（問${index + 1}）`, String(index)));
+    if (!chapters.has(question.tag)) chapters.set(question.tag, {index, count: 0});
+    chapters.get(question.tag).count++;
   });
+  for (const [tag, {index, count}] of chapters) {
+    const label = tag.replace("_", "　");
+    select.add(new Option(`${label}（${count}問）`, String(index)));
+  }
 }
 
 $("chapter-select").addEventListener("change", event => {
