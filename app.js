@@ -1,4 +1,10 @@
 "use strict";
+
+if (location.hostname === "shoxtechlab.github.io") {
+  const counter = document.getElementById("access-counter");
+  counter.addEventListener("load", () => { counter.hidden = false; }, {once: true});
+  counter.src = "https://hits.sh/shoxtechlab.github.io/1rikutoku-yosei-quiz.svg?label=Page%20views";
+}
 const state={bank:[],questions:[],answers:new Map(),results:[]},$=id=>document.getElementById(id),screens=["start-screen","quiz-screen","result-screen"];
 const shuffle=list=>{const a=[...list];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const escapeHtml=v=>String(v).replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]));
