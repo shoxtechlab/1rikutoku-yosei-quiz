@@ -42,6 +42,37 @@ function studyPosition(question) {
   const position = chapterOrder.indexOf(chapter);
   return position < 0 ? chapterOrder.length : position;
 }
+const engineeringQuotas = [["無線工学A", 7], ["無線工学B", 7], ["無線工学C", 6]];
+const chapterLimit = 3;
+
+function drawEngineering(bank) {
+  const selected = [];
+
+  for (const [subject, quota] of engineeringQuotas) {
+    const byChapter = new Map();
+    for (const question of shuffle(bank.filter(q => q.courseSubject === subject))) {
+      if (!byChapter.has(question.tag)) byChapter.set(question.tag, []);
+      byChapter.get(question.tag).push(question);
+    }
+    const chapters = [...byChapter.values()].map(questions => ({
+      questions,
+      remaining: Math.min(questions.length, chapterLimit),
+      weight: Math.sqrt(questions.length)
+    }));
+
+    for (let count = 0; count < quota; count++) {
+      const eligible = chapters.filter(chapter => chapter.remaining > 0);
+      if (!eligible.length) throw new Error(`${subject}のランダム出題に必要な問題が不足しています`);
+      const totalWeight = eligible.reduce((sum, chapter) => sum + chapter.weight, 0);
+      let ticket = Math.random() * totalWeight;
+      const chapter = eligible.find(item => (ticket -= item.weight) < 0) ?? eligible.at(-1);
+      selected.push(chapter.questions.pop());
+      chapter.remaining--;
+    }
+  }
+  return shuffle(selected);
+}
+
 function prepareExam(mode) {
   state.mode = mode;
   state.answers.clear();
@@ -50,10 +81,10 @@ function prepareExam(mode) {
   const law = state.bank.filter(q => q.subject === "法規");
   const byTopic = (a, b) => studyPosition(a) - studyPosition(b);
   const questions = mode === "easy"
-    ? shuffle(state.easyBank).slice(0, 20)
+    ? drawEngineering(state.easyBank)
     : mode !== "random"
     ? (mode === "無線工学" ? engineering : law).sort(byTopic)
-    : [...shuffle(engineering).slice(0, 20), ...shuffle(law).slice(0, 10)];
+    : [...drawEngineering(engineering), ...shuffle(law).slice(0, 10)];
   state.questions = questions.map(q => {
     const choices = q.choices.map((text, index) => ({text, index}));
     return {...q, displayChoices: mode === "random" || mode === "easy" ? shuffle(choices) : choices};

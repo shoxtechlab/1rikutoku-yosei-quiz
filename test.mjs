@@ -47,6 +47,27 @@ for (const question of easyBank) {
 if (engineeringIds.size) errors.push(`やさしい版の未作成: ${[...engineeringIds].join(", ")}`);
 if (!html.includes('id="easy-engineering"')) errors.push("やさしい版の開始ボタンなし");
 for(const id of ["start-screen","quiz-screen","result-screen","quiz-form","review-list"]){if(!html.includes(`id="${id}"`))errors.push(`画面要素不足: ${id}`)}
-new vm.Script(fs.readFileSync("app.js","utf8"),{filename:"app.js"});
+const appScript = new vm.Script(fs.readFileSync("app.js", "utf8"), {filename: "app.js"});
+const context = vm.createContext({
+  location: {hostname: "localhost"},
+  document: {getElementById: () => ({addEventListener() {}})},
+  fetch: () => new Promise(() => {})
+});
+appScript.runInContext(context);
+const drawEngineering = vm.runInContext("drawEngineering", context);
+for (const pool of [bank, easyBank]) {
+  for (let trial = 0; trial < 100; trial++) {
+    const selected = drawEngineering(pool);
+    const chapters = new Map();
+    for (const q of selected) chapters.set(q.tag, (chapters.get(q.tag) ?? 0) + 1);
+    const counts = ["A", "B", "C"].map(group =>
+      selected.filter(q => q.courseSubject === "無線工学" + group).length);
+    if (counts.join(",") !== "7,7,6" || new Set(selected.map(q => q.id)).size !== 20
+        || [...chapters.values()].some(count => count > 3)) {
+      errors.push("無線工学の抽選条件が不正");
+      break;
+    }
+  }
+}
 if(errors.length){console.error(errors.join("\n"));process.exit(1)}
 console.log(`OK: 問題バンク${bank.length}問。出題数に必要な在庫、ID・4択・正答範囲・選択肢重複・必須項目・法規根拠・JS構文を確認`);
