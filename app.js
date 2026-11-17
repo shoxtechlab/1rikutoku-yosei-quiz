@@ -38,13 +38,8 @@ async function loadEasyQuestions() {
     console.error(error);
   }
 }
-const chapterOrder = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 16, 18, 12, 13, 14, 15, 17];
-
-function studyPosition(question) {
-  const chapter = Number.parseInt(question.tag, 10);
-  if (question.subject === "法規") return chapter;
-  const position = chapterOrder.indexOf(chapter);
-  return position < 0 ? chapterOrder.length : position;
+function chapterNumber(question) {
+  return Number.parseInt(question.tag, 10);
 }
 const engineeringQuotas = [["無線工学A", 7], ["無線工学B", 7], ["無線工学C", 6]];
 const chapterLimit = 3;
@@ -94,7 +89,7 @@ const lawQuotas = [[[1, 2], 2], [[3], 2], [[4], 1], [[5], 2], [[6, 7, 8], 3]];
 function lawPools(bank) {
   const law = bank.filter(q => q.subject === "法規" && q.deleted !== true);
   return lawQuotas.map(([chapters, quota]) => ({
-    questions: law.filter(q => chapters.includes(studyPosition(q))),
+    questions: law.filter(q => chapters.includes(chapterNumber(q))),
     quota
   }));
 }
@@ -116,13 +111,13 @@ function prepareExam(mode) {
   state.results = [];
   const engineering = state.bank.filter(q => q.subject === "無線工学");
   const law = state.bank.filter(q => q.subject === "法規");
-  const byTopic = (a, b) => studyPosition(a) - studyPosition(b);
+  const byChapter = (a, b) => chapterNumber(a) - chapterNumber(b);
   const questions = mode === "easy"
     ? drawEngineering(state.easyBank)
     : mode === "easy-all"
-    ? [...state.easyBank].sort(byTopic)
+    ? [...state.easyBank].sort(byChapter)
     : mode !== "random"
-    ? (mode === "無線工学" ? engineering : law).sort(byTopic)
+    ? (mode === "無線工学" ? engineering : law).sort(byChapter)
     : [...drawEngineering(engineering), ...drawLaw(law)];
   state.questions = questions.map(q => {
     const choices = q.choices.map((text, index) => ({text, index}));
