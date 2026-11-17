@@ -11,6 +11,15 @@
   border-inline-start: 4px solid var(--blue);
 }
 
+.study-hint summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.study-hint p {
+  margin: 6px 0 0;
+}
+
 .check-feedback p:last-child,
 .review-card p {
   white-space: pre-line;
