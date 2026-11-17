@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 200" font-family="sans-serif">
+  <rect width="440" height="200" rx="12" fill="#edf5f8"/>
+  <g fill="none" stroke="#173c50" stroke-width="3" stroke-linejoin="round">
+    <path d="M82 52 L151 94 H289 L358 52 L376 74 L298 122 H142 L64 74 Z" fill="#fff"/>
+    <path d="M30 122 H410 V164 H30 Z" fill="#fff"/>
+    <path d="M193 122 H247" stroke="#fff" stroke-width="8"/>
+    <path d="M202 122 H238"/>
+  </g>
+  <g fill="#135d79">
+    <circle cx="74" cy="48" r="17"/>
+    <circle cx="366" cy="48" r="17"/>
+    <path d="M170 141 H255 V134 L272 143 L255 152 V145 H170 Z"/>
+  </g>
+  <g fill="#173c50" font-size="18" text-anchor="middle">
+    <text x="220" y="78">副導波管</text>
+    <text x="83" y="188">送信機側</text>
+    <text x="220" y="188">主導波管</text>
+    <text x="357" y="188">負荷側</text>
+  </g>
+  <g fill="white" font-size="20" font-weight="bold" text-anchor="middle">
+    <text x="74" y="55">A</text>
+    <text x="366" y="55">B</text>
+  </g>
+</svg>
