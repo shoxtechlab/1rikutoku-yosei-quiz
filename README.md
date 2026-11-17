@@ -5,6 +5,7 @@
 公開ページは [GitHub Pages](https://shoxtechlab.github.io/1rikutoku-yosei-quiz/) で、2026年11月22日まで公開予定です。
 
 - ランダム30問（無線工学20問・法規10問）と、科目別の全問演習
+- ヒントと詳しい解説付きの「無線工学・やさしい20問」（別バンク `questions-easy.json` から出題）
 - 各問の答え合わせ・解説、分野別正答率、誤答の復習
 
 ## 使い方

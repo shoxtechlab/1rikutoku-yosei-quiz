@@ -4,6 +4,18 @@
   min-inline-size: 0;
 }
 
+.study-hint {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  background: #eaf5f7;
+  border-inline-start: 4px solid var(--blue);
+}
+
+.check-feedback p:last-child,
+.review-card p {
+  white-space: pre-line;
+}
+
 .check-feedback {
   border-inline-start: 4px solid #14704c;
   overflow-wrap: anywhere;

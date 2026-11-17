@@ -17,6 +17,20 @@ for(const [subject,count] of [["無線工学",20],["法規",10]]){
   if(bank.filter(q=>q.subject===subject).length<count)errors.push(`${subject}の問題数が${count}未満です`);
 }
 const html=fs.readFileSync("index.html","utf8");
+const easyBank = JSON.parse(fs.readFileSync("questions-easy.json", "utf8")).questions;
+const engineeringIds = new Set(bank.filter(q => q.subject === "無線工学").map(q => q.id));
+for (const question of easyBank) {
+  if (!engineeringIds.delete(question.originalId) || ids.has(question.id)
+      || question.subject !== "無線工学" || !question.question || !question.hint
+      || !question.explanation || question.choices.length !== 4
+      || new Set(question.choices).size !== 4 || !Number.isInteger(question.answer)
+      || question.answer < 0 || question.answer > 3) {
+    errors.push(`やさしい版のデータ不正: ${question.id}`);
+  }
+  ids.add(question.id);
+}
+if (engineeringIds.size) errors.push(`やさしい版の未作成: ${[...engineeringIds].join(", ")}`);
+if (!html.includes('id="easy-engineering"')) errors.push("やさしい版の開始ボタンなし");
 for(const id of ["start-screen","quiz-screen","result-screen","quiz-form","review-list"]){if(!html.includes(`id="${id}"`))errors.push(`画面要素不足: ${id}`)}
 new vm.Script(fs.readFileSync("app.js","utf8"),{filename:"app.js"});
 if(errors.length){console.error(errors.join("\n"));process.exit(1)}
