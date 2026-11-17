@@ -29,6 +29,7 @@ async function loadEasyQuestions() {
     }
     state.easyBank = questions;
     $("easy-engineering").disabled = false;
+    $("all-easy-engineering").disabled = false;
   } catch (error) {
     $("easy-status").textContent = "やさしい問題を読み込めませんでした。";
     console.error(error);
@@ -82,6 +83,8 @@ function prepareExam(mode) {
   const byTopic = (a, b) => studyPosition(a) - studyPosition(b);
   const questions = mode === "easy"
     ? drawEngineering(state.easyBank)
+    : mode === "easy-all"
+    ? [...state.easyBank].sort(byTopic)
     : mode !== "random"
     ? (mode === "無線工学" ? engineering : law).sort(byTopic)
     : [...drawEngineering(engineering), ...shuffle(law).slice(0, 10)];
@@ -89,14 +92,15 @@ function prepareExam(mode) {
     const choices = q.choices.map((text, index) => ({text, index}));
     return {...q, displayChoices: mode === "random" || mode === "easy" ? shuffle(choices) : choices};
   });
-  $("retry-button").textContent = mode === "easy" ? "やさしい20問に再挑戦" : mode !== "random" ? `${mode}をもう一度解く` : "ランダム30問に再挑戦";
+  $("retry-button").textContent = mode === "easy-all" ? "やさしい全問をもう一度解く"
+    : mode === "easy" ? "やさしい20問に再挑戦" : mode !== "random" ? `${mode}をもう一度解く` : "ランダム30問に再挑戦";
   renderQuiz();
   renderChapterJump();
   show("quiz-screen");
 }
 
 function renderChapterJump() {
-  const fullPractice = state.mode === "無線工学" || state.mode === "法規";
+  const fullPractice = state.mode === "無線工学" || state.mode === "法規" || state.mode === "easy-all";
   $("chapter-jump").hidden = !fullPractice;
   const select = $("chapter-select");
   select.replaceChildren(new Option("章を選ぶ", ""));
@@ -156,8 +160,9 @@ function checkAnswer(button) {
 }
 function updateProgress(){const n=state.answers.size,t=state.questions.length;$("progress-text").textContent=`回答 ${n} / ${t}`;$("remaining-text").textContent=`残り${t-n}問`;$("progress-bar").style.width=`${n/t*100}%`;$("question-nav").querySelectorAll("button").forEach((b,i)=>b.classList.toggle("answered",state.answers.has(i)))}
 function grade(event){event.preventDefault();state.results=state.questions.map((q,index)=>({q,index,selected:state.answers.get(index),correct:state.answers.get(index)===q.answer}));renderResults();show("result-screen")}
-function renderResults(){const subjects=(state.mode==="random"?["無線工学","法規"]:[state.mode==="easy"?"無線工学":state.mode]).map(name=>{const rows=state.results.filter(r=>r.q.subject===name),correct=rows.filter(r=>r.correct).length;return{name,total:rows.length,correct,rate:Math.round(correct/rows.length*100),pass:correct/rows.length>=.6}}),passed=subjects.every(s=>s.pass),total=state.results.filter(r=>r.correct).length;$("result-summary").innerHTML=`<div class="result-hero"><div><h1>${state.mode!=="random"?`${state.mode==="easy"?"無線工学・やさしい20問":state.mode}の結果`:passed?"合格":"不合格"}</h1>${state.mode!=="random"?"":"<p>合格基準：各科目60%以上</p>"}</div><div class="score-ring">${total}<small>/${state.results.length}</small></div></div><div class="subject-scores">${subjects.map(s=>`<div class="subject-score"><div class="score-line"><span>${s.name}</span><b>${s.correct}<small> / ${s.total}</small></b></div><span class="${s.pass?"pass":"fail"}">正答率 ${s.rate}%</span></div>`).join("")}</div>`;const tags={};state.results.forEach(r=>{tags[r.q.tag]??={total:0,correct:0};tags[r.q.tag].total++;if(r.correct)tags[r.q.tag].correct++});$("tag-results").innerHTML=Object.entries(tags).map(([tag,x])=>{const rate=Math.round(x.correct/x.total*100);return`<div class="tag-row"><span>${tag}</span><div class="tag-track"><div class="tag-fill" style="width:${rate}%"></div></div><b>${rate}%</b></div>`}).join("");renderReview(false);const wrong=state.results.filter(r=>!r.correct).length;$("review-wrong-button").disabled=!wrong;$("review-wrong-button").textContent=wrong?`間違えた${wrong}問だけ復習`:"全問正解しました"}
+function renderResults(){const subjects=(state.mode==="random"?["無線工学","法規"]:[state.questions[0].subject]).map(name=>{const rows=state.results.filter(r=>r.q.subject===name),correct=rows.filter(r=>r.correct).length;return{name,total:rows.length,correct,rate:Math.round(correct/rows.length*100),pass:correct/rows.length>=.6}}),passed=subjects.every(s=>s.pass),total=state.results.filter(r=>r.correct).length;$("result-summary").innerHTML=`<div class="result-hero"><div><h1>${state.mode!=="random"?`${state.mode==="easy-all"?"無線工学・やさしい全問":state.mode==="easy"?"無線工学・やさしい20問":state.mode}の結果`:passed?"合格":"不合格"}</h1>${state.mode!=="random"?"":"<p>合格基準：各科目60%以上</p>"}</div><div class="score-ring">${total}<small>/${state.results.length}</small></div></div><div class="subject-scores">${subjects.map(s=>`<div class="subject-score"><div class="score-line"><span>${s.name}</span><b>${s.correct}<small> / ${s.total}</small></b></div><span class="${s.pass?"pass":"fail"}">正答率 ${s.rate}%</span></div>`).join("")}</div>`;const tags={};state.results.forEach(r=>{tags[r.q.tag]??={total:0,correct:0};tags[r.q.tag].total++;if(r.correct)tags[r.q.tag].correct++});$("tag-results").innerHTML=Object.entries(tags).map(([tag,x])=>{const rate=Math.round(x.correct/x.total*100);return`<div class="tag-row"><span>${tag}</span><div class="tag-track"><div class="tag-fill" style="width:${rate}%"></div></div><b>${rate}%</b></div>`}).join("");renderReview(false);const wrong=state.results.filter(r=>!r.correct).length;$("review-wrong-button").disabled=!wrong;$("review-wrong-button").textContent=wrong?`間違えた${wrong}問だけ復習`:"全問正解しました"}
 function renderReview(wrongOnly){const rows=wrongOnly?state.results.filter(r=>!r.correct):state.results;$("review-list").innerHTML=rows.map(r=>{const selected=r.selected===undefined?"未回答":r.q.choices[r.selected],source=r.q.source?`<p class="source">根拠：${r.q.source.url?`<a href="${r.q.source.url}" target="_blank" rel="noopener">${escapeHtml(r.q.source.label)}</a>`:escapeHtml(r.q.source.label)}</p>`:"";return`<article class="review-card ${r.correct?"":"incorrect"}"><h3>問${r.index+1}｜${escapeHtml(r.q.question)}</h3><p class="review-answer"><b>${r.correct?"正解":"不正解"}</b>　あなたの回答：${escapeHtml(selected)}<br>正答：${escapeHtml(r.q.choices[r.q.answer])}</p><p>${escapeHtml(r.q.explanation)}</p>${source}</article>`}).join("")}
 $("easy-engineering").addEventListener("click",()=>prepareExam("easy"));
+$("all-easy-engineering").addEventListener("click",()=>prepareExam("easy-all"));
 $("start-button").disabled=true;$("start-button").addEventListener("click",()=>prepareExam("random"));$("all-engineering").addEventListener("click",()=>prepareExam("無線工学"));$("all-law").addEventListener("click",()=>prepareExam("法規"));$("quiz-form").addEventListener("submit",grade);$("retry-button").addEventListener("click",()=>prepareExam(state.mode));["home-link","quit-button","back-button"].forEach(id=>$(id).addEventListener("click",returnHome));$("wrong-only").addEventListener("change",e=>renderReview(e.target.checked));$("review-wrong-button").addEventListener("click",()=>{$("wrong-only").checked=true;renderReview(true);$("review-title").scrollIntoView({behavior:"smooth"})});loadQuestions();
 loadEasyQuestions();
