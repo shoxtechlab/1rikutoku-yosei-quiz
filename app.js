@@ -165,7 +165,42 @@ function questionFigure(question) {
 }
 
 function formatQuestion(question) {
-  return escapeHtml(question).replace(/誤っているものを一つ選べ/g, "<strong><u>function renderQuiz()</u></strong>");
+  return escapeHtml(question).replace(/誤っているものを一つ選べ/g, "<strong><u>$&</u></strong>");
+}
+
+const swrFormulas = (() => {
+  const term = value => (value.match(/\d+(?:\.\d+)?|[A-Za-z]+|\S/g) ?? []).map(token => {
+    const subscript = /^(V|P)(max|min|f|r)$/.exec(token);
+    if (subscript) return `<msub><mi>${subscript[1]}</mi><mi>${subscript[2]}</mi></msub>`;
+    const tag = /^\d/.test(token) ? "mn" : /^[A-Za-zΓ]+$/.test(token) ? "mi" : "mo";
+    return `<${tag}>${escapeHtml(token)}</${tag}>`;
+  }).join("");
+  const fraction = (top, bottom) => `<mfrac><mrow>${top}</mrow><mrow>${bottom}</mrow></mfrac>`;
+  const ratio = (top, bottom) => fraction(term(top), term(bottom));
+  const reflected = ratio("|Vr|", "|Vf|");
+  const root = content => `<msqrt><mrow>${content}</mrow></msqrt>`;
+  const line = (...parts) => `<math display="block"><mrow>${parts.join("")}</mrow></math>`;
+  return [
+    ["SWR＝Vmax/Vmin＝(Vf＋Vr)/(Vf−Vr)＝(1＋|Vr|/|Vf|)/(1−|Vr|/|Vf|)＝(1＋|Γ|)/(1−|Γ|)",
+      line(term("SWR="), ratio("Vmax", "Vmin"), term("="), ratio("Vf+Vr", "Vf−Vr"))
+      + line(term("="), fraction(term("1+") + reflected, term("1−") + reflected), term("="), ratio("1+|Γ|", "1−|Γ|"))],
+    ["|Γ|＝(SWR−1)/(SWR＋1)＝(3−1)/(3＋1)＝0.5",
+      line(term("|Γ|="), ratio("SWR−1", "SWR+1"), term("="), ratio("3−1", "3+1"), term("=0.5"))],
+    ["|Γ|²＝0.25＝25%", line(`<msup><mrow>${term("|Γ|")}</mrow><mn>2</mn></msup>`, term("=0.25=25%"))],
+    ["SWR＝√(Pmax/Pmin)＝√(18÷2)＝3",
+      line(term("SWR="), root(ratio("Pmax", "Pmin")), term("="), root(term("18÷2")), term("=3"))],
+    ["SWR＝√4＝2", line(term("SWR="), root(term("4")), term("=2"))],
+    ...[["4", "2", "2"], ["8", "4", "2"], ["12", "3", "4"]].map(([max, min, swr]) =>
+      [`SWR＝${max}÷${min}＝${swr}`, line(term("SWR="), ratio(max, min), term(`=${swr}`))])
+  ];
+})();
+
+function formatExplanation(explanation) {
+  let html = escapeHtml(explanation);
+  for (const [plain, formatted] of swrFormulas) {
+    html = html.replaceAll(escapeHtml(plain + "。"), formatted);
+  }
+  return html.replaceAll("\n", "<br>");
 }
 
 function renderQuiz(){$("questions").innerHTML=state.questions.map((q,i)=>`<article class="question-card" id="question-${i}"><div class="question-meta"><span class="question-number">問${i+1}</span><span class="pill">${escapeHtml(q.courseSubject ?? q.subject)}</span><span class="pill">${q.tag}</span><span class="difficulty">難易度：${q.difficulty}</span></div><fieldset><legend>${formatQuestion(q.question)}</legend>${questionFigure(q)}${q.hint ? `<details class="study-hint"><summary>ヒント</summary><p>${escapeHtml(q.hint)}</p></details>` : ""}${q.displayChoices.map((c,j)=>`<label class="choice"><input type="radio" name="q${i}" value="${c.index}"><span class="choice-letter">${"ABCD"[j]}</span><span>${escapeHtml(c.text)}</span></label>`).join("")}</fieldset><button type="button" class="button secondary check-answer" data-index="${i}" disabled>答え合わせ</button><div class="review-answer check-feedback" id="feedback-${i}" role="status" hidden></div></article>`).join("");$("question-nav").innerHTML=state.questions.map((_,i)=>`<button type="button" data-index="${i}" aria-label="問${i+1}へ移動">${i+1}</button>`).join("");$("questions").querySelectorAll("input").forEach(x=>x.addEventListener("change",e=>{const i=Number(e.target.name.slice(1));state.answers.set(i,Number(e.target.value));$("question-"+i).querySelector(".check-answer").disabled=false;updateProgress()}));
@@ -195,7 +230,9 @@ function checkAnswer(button) {
   };
   if (!correct) addLine("あなたの回答：", describeChoice(selected));
   addLine("正答：", describeChoice(question.answer));
-  addLine("解説：", question.explanation);
+  const explanation = document.createElement("div");
+  explanation.innerHTML = `解説：${formatExplanation(question.explanation)}`;
+  feedback.append(explanation);
   feedback.hidden = false;
   const navButton = $("question-nav").querySelector(`button[data-index="${index}"]`);
   navButton.classList.add(correct ? "correct" : "incorrect");
@@ -208,7 +245,7 @@ function checkAnswer(button) {
 function updateProgress(){const n=state.answers.size,t=state.questions.length;$("progress-text").textContent=`回答 ${n} / ${t}`;$("remaining-text").textContent=`残り${t-n}問`;$("progress-bar").style.width=`${n/t*100}%`;$("question-nav").querySelectorAll("button").forEach((b,i)=>b.classList.toggle("answered",state.answers.has(i)))}
 function grade(event){event.preventDefault();state.results=state.questions.map((q,index)=>({q,index,selected:state.answers.get(index),correct:state.answers.get(index)===q.answer}));renderResults();show("result-screen")}
 function renderResults(){const subjects=(state.mode==="random"?["無線工学","法規"]:[state.questions[0].subject]).map(name=>{const rows=state.results.filter(r=>r.q.subject===name),correct=rows.filter(r=>r.correct).length;return{name,total:rows.length,correct,rate:Math.round(correct/rows.length*100),pass:correct/rows.length>=.6}}),passed=subjects.every(s=>s.pass),total=state.results.filter(r=>r.correct).length;$("result-summary").innerHTML=`<div class="result-hero"><div><h1>${state.mode!=="random"?`${state.mode==="easy-all"?"無線工学・やさしい全問":state.mode==="easy"?"無線工学・やさしい20問":state.mode}の結果`:passed?"合格":"不合格"}</h1>${state.mode!=="random"?"":"<p>合格基準：各科目60%以上</p>"}</div><div class="score-ring">${total}<small>/${state.results.length}</small></div></div><div class="subject-scores">${subjects.map(s=>`<div class="subject-score"><div class="score-line"><span>${s.name}</span><b>${s.correct}<small> / ${s.total}</small></b></div><span class="${s.pass?"pass":"fail"}">正答率 ${s.rate}%</span></div>`).join("")}</div>`;const tags={};state.results.forEach(r=>{tags[r.q.tag]??={total:0,correct:0};tags[r.q.tag].total++;if(r.correct)tags[r.q.tag].correct++});$("tag-results").innerHTML=Object.entries(tags).map(([tag,x])=>{const rate=Math.round(x.correct/x.total*100);return`<div class="tag-row"><span>${tag}</span><div class="tag-track"><div class="tag-fill" style="width:${rate}%"></div></div><b>${rate}%</b></div>`}).join("");renderReview(false);const wrong=state.results.filter(r=>!r.correct).length;$("review-wrong-button").disabled=!wrong;$("review-wrong-button").textContent=wrong?`間違えた${wrong}問だけ復習`:"全問正解しました"}
-function renderReview(wrongOnly){const rows=wrongOnly?state.results.filter(r=>!r.correct):state.results;$("review-list").innerHTML=rows.map(r=>{const selected=r.selected===undefined?"未回答":r.q.choices[r.selected],source=r.q.source?`<p class="source">根拠：${r.q.source.url?`<a href="${r.q.source.url}" target="_blank" rel="noopener">${escapeHtml(r.q.source.label)}</a>`:escapeHtml(r.q.source.label)}</p>`:"";return`<article class="review-card ${r.correct?"":"incorrect"}"><h3>問${r.index+1}｜${formatQuestion(r.q.question)}</h3>${questionFigure(r.q)}<p class="review-answer"><b>${r.correct?"正解":"不正解"}</b>　あなたの回答：${escapeHtml(selected)}<br>正答：${escapeHtml(r.q.choices[r.q.answer])}</p><p>${escapeHtml(r.q.explanation)}</p>${source}</article>`}).join("")}
+function renderReview(wrongOnly){const rows=wrongOnly?state.results.filter(r=>!r.correct):state.results;$("review-list").innerHTML=rows.map(r=>{const selected=r.selected===undefined?"未回答":r.q.choices[r.selected],source=r.q.source?`<p class="source">根拠：${r.q.source.url?`<a href="${r.q.source.url}" target="_blank" rel="noopener">${escapeHtml(r.q.source.label)}</a>`:escapeHtml(r.q.source.label)}</p>`:"";return`<article class="review-card ${r.correct?"":"incorrect"}"><h3>問${r.index+1}｜${formatQuestion(r.q.question)}</h3>${questionFigure(r.q)}<p class="review-answer"><b>${r.correct?"正解":"不正解"}</b>　あなたの回答：${escapeHtml(selected)}<br>正答：${escapeHtml(r.q.choices[r.q.answer])}</p><p>${formatExplanation(r.q.explanation)}</p>${source}</article>`}).join("")}
 $("easy-engineering").addEventListener("click",()=>prepareExam("easy"));
 $("all-easy-engineering").addEventListener("click",()=>prepareExam("easy-all"));
 $("start-button").disabled=true;$("start-button").addEventListener("click",()=>prepareExam("random"));$("all-engineering").addEventListener("click",()=>prepareExam("無線工学"));$("all-law").addEventListener("click",()=>prepareExam("法規"));$("quiz-form").addEventListener("submit",grade);$("retry-button").addEventListener("click",()=>prepareExam(state.mode));["home-link","quit-button","back-button"].forEach(id=>$(id).addEventListener("click",returnHome));$("wrong-only").addEventListener("change",e=>renderReview(e.target.checked));$("review-wrong-button").addEventListener("click",()=>{$("wrong-only").checked=true;renderReview(true);$("review-title").scrollIntoView({behavior:"smooth"})});loadQuestions();
