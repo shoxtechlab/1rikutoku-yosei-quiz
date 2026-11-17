@@ -161,7 +161,7 @@ $("chapter-select").addEventListener("change", event => {
 });
 function questionFigure(question) {
   if (question.figure !== "directional-coupler") return "";
-  return '<img src="directional-coupler.svg" width="440" style="display:block;max-width:100%;height:auto;margin:0.75rem 0" alt="二孔形方向性結合器。主導波管は左が送信機側、右が負荷側。矢印は右向き。副導波管の左端はA、右端はB。">';
+  return '<img src="directional-coupler.svg" width="440" style="display:block;max-width:100%;height:auto;margin:0.75rem 0" alt="二孔形方向性結合器。主導波管は左が送信機側、右が負荷側。矢印は右向き。上下の導波管の共通壁に二つの結合孔があり、副導波管の左端はA、右端はB。">';
 }
 
 function formatQuestion(question) {
